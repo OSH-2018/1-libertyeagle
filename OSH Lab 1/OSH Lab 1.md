@@ -21,7 +21,7 @@ make
 ```
 在`make menuconfig`一步，进入内核配置菜单，选择`Kernel hacking`->`Compile-time checks and compiler options`->勾选`Compile the kernel with debug info` 
 #### qemu编译
-之后从[qemu.org](https://www.qemu.org)获取qemu 2.12.0-rc0版，并编译anzhuna
+之后从[qemu.org](https://www.qemu.org)获取qemu 2.12.0-rc0版，并编译安装
 ```bash
 sudo apt-get install git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
 make clean
@@ -39,6 +39,7 @@ make
 make install
 ```
 其中menuconfig中勾选`Settings` -> `Build Options` -> `Build static binary (no shared libs)`
+![menuconfig](resources/menuconfig.png)
 更新文件系统
 ```bash
 cd _install
@@ -71,9 +72,9 @@ gdb -tui
 (gdb) c # continue
 ```
 之后我们可以看到，qemu停在了内核引导的位置
-![Screenshot from 2018-03-26 09-22-44.png](resources/3F92FFE2AE21545C57B8682694FD7073.png =734x488)
+![Screenshot from 2018-03-26 09-22-44.png](resources/3F92FFE2AE21545C57B8682694FD7073.png)
 使用VNC连接远程桌面，可以看到
-![Screenshot from 2018-03-26 21-47-22.png](resources/A4BFED3B88A6D66DA83BA4BF0A94CAA5.png =937x677)
+![Screenshot from 2018-03-26 21-47-22.png](resources/A4BFED3B88A6D66DA83BA4BF0A94CAA5.png)
 
 ## `start_kernel` - Linux内核的`main`函数
 ### 总揽
@@ -102,9 +103,9 @@ gdb -tui
 - 控制台初始化 (console_init)
 - 完成剩余部分 (rest_init)
 在刚开始我们可以看到两个字符串变量`command_line`和`after_dashes`，我们可以用gdb看到他们的值
-![Screenshot from 2018-03-26 21-42-29.png](resources/341934226E66AFC8AE6BB484CE398507.png =734x488)
+![Screenshot from 2018-03-26 21-42-29.png](resources/341934226E66AFC8AE6BB484CE398507.png)
 可以看到该部分的一些汇编代码
-![Screenshot from 2018-03-27 03-53-14.png](resources/625213E05D48E85018B5C9B2BAFCFC09.png =734x488)
+![Screenshot from 2018-03-27 03-53-14.png](resources/625213E05D48E85018B5C9B2BAFCFC09.png)
 在`start_kernel()`，我们看到其调用的第一个函数是`lockdep_init()`，这个函数会初始化内核死锁检测机制的哈希表。接下来，会调用`	set_task_stack_end_magic(&init_task)`函数
 ## `set_task_stack_end_magic()`
 用gdb设置断点，我们可以看到这部分的代码
@@ -151,7 +152,7 @@ struct thread_info {
 };
 ```
 ### `smp_setup_processor_id()`
-![Screenshot from 2018-03-26 22-02-21.png](resources/4AE52BA915C4AA51ECFB3D89EE12944F.png =734x488)
+![Screenshot from 2018-03-26 22-02-21.png](resources/4AE52BA915C4AA51ECFB3D89EE12944F.png)
 `smp_setup_process_id()`中`smp`指的是symmetric multi-processor，与之对应的是NUMA和MPP。用以设置SMP模型的CPU ID
 ```c
 # if THREAD_SIZE >= PAGE_SIZE
@@ -161,7 +162,7 @@ void __init __weak thread_info_cache_init(void)
 #endif
 ```
 ### `cgroup_init_early()`
-![Screenshot from 2018-03-26 22-08-05.png](resources/E0C9E128CF303A3E988C69A031F2F825.png =734x488)
+![Screenshot from 2018-03-26 22-08-05.png](resources/E0C9E128CF303A3E988C69A031F2F825.png)
 该函数定义在`kernel/cgroup.c`中，在系统启动时初始化control groups，并且初始化任何需要early init的子系统
 其中`cgroup_subsys`结构的定义可以在`include/linux/cgroup-defs.h`中找到
 ```c
@@ -250,7 +251,7 @@ struct cgroup_sb_opts {
 };
 ```
 ### `boot_cpu_init()`
-![Screenshot from 2018-03-26 22-21-31.png](resources/1FD4E8AB2F60F9BF94C22C170D7FD30E.png =734x488)
+![Screenshot from 2018-03-26 22-21-31.png](resources/1FD4E8AB2F60F9BF94C22C170D7FD30E.png)
 该函数激活第一个CPU，先取得CPU的ID，然后将该CPU标记为`online`, `active`, `present`, `possible`
 ```c
 static void __init boot_cpu_init(void)
@@ -264,16 +265,16 @@ static void __init boot_cpu_init(void)
 }
 ```
 ### `pr_notice("%s", linux_banner)`
-![Screenshot from 2018-03-26 22-29-13.png](resources/75B087D00D9C43E642008291A6153A63.png =734x488)
+![Screenshot from 2018-03-26 22-29-13.png](resources/75B087D00D9C43E642008291A6153A63.png)
 这一步会调用`printk()`打印`linux_banner`
 printk函数在`kernel/printk/printk.c`中
 我们用gdb可以看出其内容是
 `Linux version 4.1.50 (libertyeagle@ubuntu) (gcc version 7.2.0 (Ubuntu 7.2.0-8ubuntu3.2) ) #1 SMP Mon Mar 26 08:03:29 PDT 2018\n`
 ### `setup_arch(&command_line)`
-![Screenshot from 2018-03-27 03-55-19.png](resources/103780F7FC4E329DCE9CBCB823055882.png =734x488)
+![Screenshot from 2018-03-27 03-55-19.png](resources/103780F7FC4E329DCE9CBCB823055882.png)
 这一部分为体系结构的初始化函数，定义在`arch/x86/kernel/setup.c`中，接受`command_line`为参数
 ### `trap_init`
-![Screenshot from 2018-03-26 23-12-24.png](resources/A9EE07D1CBF0260EBC375D0C25B325E0.png =734x488)
+![Screenshot from 2018-03-26 23-12-24.png](resources/A9EE07D1CBF0260EBC375D0C25B325E0.png)
 这一部分定义在`arch/x86/kernel.tarps.c`中，用来构建中断描述符号表
 可以观察出一些关键部分
 ```
@@ -302,7 +303,7 @@ printk函数在`kernel/printk/printk.c`中
 - `#UD` -> 无效指令（Invalid Opcode）
 - `#NM` -> 设备不可用
 ### `mm_init()`
-![Screenshot from 2018-03-26 23-12-47.png](resources/46412C879F75B09A3A94DA009DA03E7E.png =734x488)
+![Screenshot from 2018-03-26 23-12-47.png](resources/46412C879F75B09A3A94DA009DA03E7E.png)
 该函数就在`init/main.c`中，内容如下
 ```c
 static void __init mm_init(void)
@@ -322,7 +323,7 @@ static void __init mm_init(void)
 ```
 其中`page_ext_init_flatmem`与`CONFIG_SPARSEMEM`有关，`mem_init`释放所有`bootmem`，`kmem_cahce_init`初始化内核缓存，`vmalloc_init`初始化`vmalloc`
 ### `sched_init()`
-![Screenshot from 2018-03-26 23-12-55.png](resources/26C0FF3EF05736E282D94D5ED22F4600.png =734x488)
+![Screenshot from 2018-03-26 23-12-55.png](resources/26C0FF3EF05736E282D94D5ED22F4600.png)
 定义在`kernel/sched/core.c`中，主要目的是
 - 对相关数据结构分配内存
 - 初始化root_task_group
@@ -344,13 +345,13 @@ static void __init mm_init(void)
 ```
 这部分代码遍历设置每一个处在`possible`状态的CPU，为其中的每一个CPU初始化一个`runqueue`队列
 ### `time_init()`
-![Screenshot from 2018-03-27 04-03-57.png](resources/2DAD55EB559B58005BBCBDD1C1410DE3.png =734x488)
+![Screenshot from 2018-03-27 04-03-57.png](resources/2DAD55EB559B58005BBCBDD1C1410DE3.png)
 用`x86_late_time_init`初始化event timer，该代码在`arch/x86/kernel/time.c`中
 ### `console_init()`
-![Screenshot from 2018-03-27 03-55-48.png](resources/2A804AAF039E4A9D8965F13253ACF0F9.png =734x488)
+![Screenshot from 2018-03-27 03-55-48.png](resources/2A804AAF039E4A9D8965F13253ACF0F9.png)
 在`drivers/tty/tty_io.c`中，用于初始化控制台，在这里仅完成一些early initializations
 ### `rest_init()`
-![Screenshot from 2018-03-26 23-18-08.png](resources/D5D39C009113992BBE7F00090CB56C73.png =734x488)
+![Screenshot from 2018-03-26 23-18-08.png](resources/D5D39C009113992BBE7F00090CB56C73.png)
 这是`start_kernel()`最后调用的函数，进一步完成内核的初始化
 ```c
 static noinline void __init_refok rest_init(void)
@@ -383,7 +384,7 @@ static noinline void __init_refok rest_init(void)
 }
 ```
 例如，`rest_init()`首先会完成RCU调度器的启动
-![Screenshot from 2018-03-26 23-21-55.png](resources/7A8001E0F06CD00FEEEC00332220A38B.png =734x488)
+![Screenshot from 2018-03-26 23-21-55.png](resources/7A8001E0F06CD00FEEEC00332220A38B.png)
 ```c
 void rcu_scheduler_starting(void)
 {
@@ -394,4 +395,4 @@ void rcu_scheduler_starting(void)
 ```
 首先会确保当前只有一个CPU在线，且没有上下文切换，之后会将RCU使能
 ## 启动完成
-![Screenshot from 2018-03-27 03-57-54.png](resources/0B9F1665217DB5D574AA2775DA980F29.png =937x677)
+![Screenshot from 2018-03-27 03-57-54.png](resources/0B9F1665217DB5D574AA2775DA980F29.png)
